@@ -1,0 +1,23 @@
+// WEBHOOK ENDPOINT (côté serveur)
+// Créez un endpoint sur votre serveur pour recevoir les webhooks PawaPay
+app.post('/api/pawapay-webhook', async (req, res) => {
+    try {
+        // Vérifier la signature du webhook
+        const signature = req.headers['x-pawapay-signature'];
+        if (!verifyWebhookSignature(req.body, signature)) {
+            return res.status(401).send('Signature invalide');
+        }
+
+        const { event, data } = req.body;
+
+        if (event === 'deposit.completed') {
+            // Traiter le paiement réussi
+            await handleWebhookPaymentSuccess(data);
+        }
+
+        res.status(200).send('Webhook reçu');
+    } catch (error) {
+        console.error('Erreur webhook:', error);
+        res.status(500).send('Erreur serveur');
+    }
+});
