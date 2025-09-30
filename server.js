@@ -1,43 +1,69 @@
+// Code pour votre endpoint Render (server.js)
 const express = require('express');
 const app = express();
 
-// Middleware pour comprendre le JSON
-app.use(express.json());
+// MIDDLEWARE IMPORTANT
+app.use(express.json()); // Pour parser le JSON
+app.use(express.urlencoded({ extended: true }));
 
-// Votre webhook pour PawaPay
+// Autoriser CORS
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+});
+
+// Gérer les preflight OPTIONS requests
+app.options('/pawapay-webhook', (req, res) => {
+    res.status(200).send();
+});
+
+// VOTRE WEBHOOK PRINCIPAL
 app.post('/pawapay-webhook', (req, res) => {
-  console.log('🔔 Webhook PawaPay reçu !');
-  console.log('Données reçues:', JSON.stringify(req.body, null, 2));
-  
-  // ICI : Vous pouvez ajouter votre logique
-  // - Sauvegarder en base de données
-  // - Envoyer un email
-  // - Mettre à jour une commande
-  
-  console.log('✅ Réponse envoyée à PawaPay');
-  
-  // Toujours répondre 200 à PawaPay
-  res.status(200).json({ 
-    status: 'success',
-    message: 'Webhook reçu avec succès',
-    timestamp: new Date().toISOString()
-  });
+    console.log('✅ Webhook PawaPay reçu (POST)');
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    
+    // Répondre immédiatement à PawaPay
+    res.status(200).json({
+        status: 'success',
+        message: 'Webhook received successfully'
+    });
+    
+    // Traitement asynchrone ensuite
+    processWebhookData(req.body);
 });
 
-// Page d'accueil simple pour les tests
+// Endpoint pour vérifier le statut
+app.get('/status/:transactionRef', (req, res) => {
+    const transactionRef = req.params.transactionRef;
+    res.json({
+        transactionRef: transactionRef,
+        status: 'completed', // À adapter selon votre logique
+        checkedAt: new Date().toISOString()
+    });
+});
+
+// Route par défaut
 app.get('/', (req, res) => {
-  res.send(`
-    <h1>🚀 Serveur Webhook PawaPay Actif</h1>
-    <p><strong>URL du webhook:</strong> <code>/pawapay-webhook</code></p>
-    <p><strong>Méthode:</strong> POST</p>
-    <p><strong>Date:</strong> ${new Date()}</p>
-    <hr>
-    <p>Ce serveur est prêt à recevoir les callbacks de PawaPay</p>
-  `);
+    res.json({ 
+        message: 'PawaPay Webhook Server is running',
+        endpoints: {
+            webhook: 'POST /pawapay-webhook',
+            status: 'GET /status/:transactionRef'
+        }
+    });
 });
 
-// Démarrer le serveur
+function processWebhookData(webhookData) {
+    // Traitement asynchrone des données
+    console.log('📦 Traitement des données webhook:', webhookData);
+    
+    // Ici vous mettrez à jour Firebase, etc.
+}
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Serveur webhook démarré sur le port ${PORT}`);
+    console.log(`🚀 Webhook server running on port ${PORT}`);
 });
